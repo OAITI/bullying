@@ -11,11 +11,23 @@ library(maptools)
 library(leaflet)
 library(scales)
 library(shinythemes)
+library(shinycssloaders)
 
 addResourcePath("images", "images")
 
 bullying <- read_csv("data/bullying/bullying_clean.csv")
 iowa_districts <- readOGR(dsn = "data/cb_2016_iowa_school_districts", layer = "IdoeSchoolDistrictsFY2016", stringsAsFactors = FALSE)
+
+mycoef <- function(formula, data) {
+    result <- try(coef(lm(formula, data = data)))
+    
+    if (inherits(result, "try-error")) return(NA)
+    
+    return(result)
+}
+
+load("data/bullying/initial_explore_map.RData")
+load("data/bullying/initial_model_map.RData")
 
 ui <- fluidPage(theme = shinytheme("cerulean"),
    
@@ -42,13 +54,14 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        h4("Map of Bullying Incidents"),
                        HTML("The map below displays the total number of bullying incidents by district over the specified time frame. Use the inputs on the left to filter to a specific type of incident and/or a specific year. Districts colored in gray had missing data during the specified time frame."),
                        
-                       leafletOutput("mymap")
+                       withSpinner(leafletOutput("mymap"))
               ),
               
               tabPanel("Model",
                        h4("Modeling the Trend"),
                        HTML("Here we use a Simple Linear Regression to model the trend in bullying incidents between 2013 and 2016. A negative trend (colored in green) indicates that bullying incidents appear to be on the decrease, while a positive trend (colored in red) indicates an increase. Districts are colored gray where data was too limited to compute the model."),
-                       leafletOutput("modelmap")
+                       
+                       withSpinner(leafletOutput("modelmap"))
               ),
               
               tabPanel("Data Source",
@@ -58,7 +71,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        hr(),
                        
                        h4("Raw Data"),
-                       dataTableOutput("data")
+                       withSpinner(dataTableOutput("data"))
               )
           )
       )
@@ -67,88 +80,102 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
 
 server <- function(input, output) {
     
-    mycoef <- function(formula, data) {
-        result <- try(coef(lm(formula, data = data)))
-        
-        if (inherits(result, "try-error")) return(NA)
-        
-        return(result)
-    }
+    values <- reactiveValues(firstrun = TRUE)
+    
+    observeEvent(input$year, {
+        values$firstrun <- FALSE
+    }, ignoreInit = TRUE)
+
+    observeEvent(input$scale, {
+        values$firstrun <- FALSE
+    }, ignoreInit = TRUE)
+
+    observeEvent(input$variable, {
+        values$firstrun <- FALSE
+    }, ignoreInit = TRUE)
     
     output$modelmap <- renderLeaflet({
-        withProgress(message = "Rendering model map", detail = "Please wait...", {
-            bullying$MyVar <- bullying[[input$variable]]
-            bullying_fip <- bullying %>%
-                group_by(District, Year) %>%
-                summarise(`Incidents` = sum(MyVar),
-                          `District Name` = tools::toTitleCase(`District Name`)[1]) %>%
-                group_by(`District`) %>%
-                do(Trend = mycoef(Incidents ~ Year, data = .)[2],
-                   Name = .$`District Name`[1])
-            bullying_fip2 <- data.frame(District = bullying_fip$District,
-                                        Name = unlist(bullying_fip$Name),
-                                        Trend = unlist(bullying_fip$Trend))
-            
-            leafmap <- iowa_districts %>%
-                merge(bullying_fip2, by.x = "IDOE_ID", by.y = "District")
-            
-            # Format popup data for leaflet map.
-            popup_dat <- paste0("<strong>District: </strong>", 
-                                leafmap$Name, 
-                                "<br><strong>Incident Trend: </strong>", 
-                                round(leafmap$Trend, digits = 3))
-            
-            absmax <- ceiling(max(abs(leafmap$Trend), na.rm = TRUE))
-            pal <- colorNumeric("RdYlGn", -absmax:absmax, reverse = TRUE)
-            
-            # Render final map in leaflet.
-            leaflet(data = leafmap) %>% addTiles() %>%
-                addPolygons(fillColor = ~pal(Trend), 
-                            fillOpacity = 0.8, 
-                            color = "#BDBDC3", 
-                            weight = 1,
-                            popup = popup_dat) %>%
-                addLegend(pal = pal, values = ~Trend, opacity = 1, title = "Trend in Incidents")
-        })
+        if (values$firstrun) {
+            return(initial_model_map)
+        } else {
+            withProgress(message = "Rendering model map", detail = "Please wait...", {
+                bullying$MyVar <- bullying[[input$variable]]
+                bullying_fip <- bullying %>%
+                    group_by(District, Year) %>%
+                    summarise(`Incidents` = sum(MyVar),
+                              `District Name` = tools::toTitleCase(`District Name`)[1]) %>%
+                    group_by(`District`) %>%
+                    do(Trend = mycoef(Incidents ~ Year, data = .)[2],
+                       Name = .$`District Name`[1])
+                bullying_fip2 <- data.frame(District = bullying_fip$District,
+                                            Name = unlist(bullying_fip$Name),
+                                            Trend = unlist(bullying_fip$Trend))
+                
+                leafmap <- iowa_districts %>%
+                    merge(bullying_fip2, by.x = "IDOE_ID", by.y = "District")
+                
+                # Format popup data for leaflet map.
+                popup_dat <- paste0("<strong>District: </strong>", 
+                                    leafmap$Name, 
+                                    "<br><strong>Incident Trend: </strong>", 
+                                    round(leafmap$Trend, digits = 3))
+                
+                absmax <- ceiling(max(abs(leafmap$Trend), na.rm = TRUE))
+                pal <- colorNumeric("RdYlGn", -absmax:absmax, reverse = TRUE)
+                
+                # Render final map in leaflet.
+                leaflet(data = leafmap) %>% addTiles() %>%
+                    addPolygons(fillColor = ~pal(Trend), 
+                                fillOpacity = 0.8, 
+                                color = "#BDBDC3", 
+                                weight = 1,
+                                popup = popup_dat) %>%
+                    addLegend(pal = pal, values = ~Trend, opacity = 1, title = "Trend in Incidents")
+            })
+        }
     })
     
     output$mymap <- renderLeaflet({
-        withProgress(message = "Rendering incidents map", detail = "Please wait...", {
-            myyear <- input$year
-            if (myyear == "All") myyear <- 2013:2016
-            
-            bullying$MyVar <- bullying[[input$variable]]
-            bullying_fip <- bullying %>%
-                filter(Year %in% myyear) %>%
-                group_by(District) %>%
-                summarise(`Incidents` = ifelse(all(is.na(MyVar)), NA, sum(MyVar, na.rm = TRUE)),
-                          `District Name` = `District Name`[1],
-                          `District Enrollment` = ifelse(all(is.na(Enrollment)), NA, sum(Enrollment, na.rm = TRUE)))
-            if (input$scale) bullying_fip$Incidents = bullying_fip$Incidents * 1000 / bullying_fip$`District Enrollment`
-            
-            leafmap <- iowa_districts %>%
-                merge(bullying_fip, by.x = "IDOE_ID", by.y = "District")
-            
-            # Format popup data for leaflet map.
-            popup_dat <- paste0("<strong>District: </strong>", 
-                                leafmap$`District Name`, 
-                                "<br><strong>Incidents: </strong>", 
-                                round(leafmap$Incidents, digits = 2),
-                                "<br><strong>Enrollment: </strong>",
-                                leafmap$`District Enrollment`)
-            
-            mytitle <- ifelse(input$scale, paste(input$variable, "(per 1000)"), input$variable)
-            pal <- colorNumeric("YlOrRd", NULL)
-            
-            # Render final map in leaflet.
-            leaflet(data = leafmap) %>% addTiles() %>%
-                addPolygons(fillColor = ~pal(Incidents), 
-                            fillOpacity = 0.8, 
-                            color = "#BDBDC3", 
-                            weight = 1,
-                            popup = popup_dat) %>%
-                addLegend(pal = pal, values = ~Incidents, opacity = 1, title = mytitle)
-        })
+        if (values$firstrun) {
+            return(initial_explore_map)
+        } else {
+            withProgress(message = "Rendering incidents map", detail = "Please wait...", {
+                myyear <- input$year
+                if (myyear == "All") myyear <- 2013:2016
+                
+                bullying$MyVar <- bullying[[input$variable]]
+                bullying_fip <- bullying %>%
+                    filter(Year %in% myyear) %>%
+                    group_by(District) %>%
+                    summarise(`Incidents` = ifelse(all(is.na(MyVar)), NA, sum(MyVar, na.rm = TRUE)),
+                              `District Name` = `District Name`[1],
+                              `District Enrollment` = ifelse(all(is.na(Enrollment)), NA, sum(Enrollment, na.rm = TRUE)))
+                if (input$scale) bullying_fip$Incidents = bullying_fip$Incidents * 1000 / bullying_fip$`District Enrollment`
+                
+                leafmap <- iowa_districts %>%
+                    merge(bullying_fip, by.x = "IDOE_ID", by.y = "District")
+                
+                # Format popup data for leaflet map.
+                popup_dat <- paste0("<strong>District: </strong>", 
+                                    leafmap$`District Name`, 
+                                    "<br><strong>Incidents: </strong>", 
+                                    round(leafmap$Incidents, digits = 2),
+                                    "<br><strong>Enrollment: </strong>",
+                                    leafmap$`District Enrollment`)
+                
+                mytitle <- ifelse(input$scale, paste(input$variable, "(per 1000)"), input$variable)
+                pal <- colorNumeric("YlOrRd", NULL)
+                
+                # Render final map in leaflet.
+                leaflet(data = leafmap) %>% addTiles() %>%
+                    addPolygons(fillColor = ~pal(Incidents), 
+                                fillOpacity = 0.8, 
+                                color = "#BDBDC3", 
+                                weight = 1,
+                                popup = popup_dat) %>%
+                    addLegend(pal = pal, values = ~Incidents, opacity = 1, title = mytitle)
+            })
+        }
     })
     
     output$data <- renderDataTable({
