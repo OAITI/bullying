@@ -50,6 +50,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
       
       mainPanel(
           bsModal(id = 'startupModal', title = 'Reported Bullying Incidents Disclaimer', trigger = '',
+                  size = 'medium', HTML("We have created this app to make the publicly available bullying data for Iowa easier to visualize and interpret. However, some important disclaimers should be noted:<br><br>1. This data consists of <b>reported</b> bullying incidents. Many bullying incidents are left unreported, and some districts may be better about logging these reports than others.<br><br>2. Districts in which between 1 and 9 bullying incidents were reported in a particular year had the <b>data redacted</b> to protect student privacy. These districts will display as white in both the Explore and the Model tabs. <a href="https://www.educateiowa.gov/data-reporting/data-reporting/data-access-sharing-and-privacy">DE Data Privacy</a><br><br>3. In view of the above points, the trend model is a prototype and <b>should not be used to make decisions</b> based on the bullying trend. Please use the model only as an example of a possible analysis and not as a decision making tool.<br><br> By clicking \"Close\", you confirm that you have read these disclaimers.")),
           
           tabsetPanel(id = "tabs1",
               tabPanel("Explore",
