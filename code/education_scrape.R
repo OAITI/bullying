@@ -96,7 +96,7 @@ bullying_join <- bullying_all %>%
            `District Name` != "State") %>%
     select(District:Other, Year, County = `COUNTY NAME`, Enrollment = `Total K12`)
 #bullying_join[is.na(bullying_join)] <- 0
-bullying_join$`Founded Incidents`[bullying_join$`Founded Incidents` == "<10" & !is.na(bullying_join$`Founded Incidents`)] <- sample(1:9, size = sum(bullying_join$`Founded Incidents` == "<10", na.rm = TRUE), replace = TRUE)
-bullying_join[bullying_join == "<10"] <- 0
+#bullying_join$`Founded Incidents`[bullying_join$`Founded Incidents` == "<10" & !is.na(bullying_join$`Founded Incidents`)] <- sample(1:9, size = sum(bullying_join$`Founded Incidents` == "<10", na.rm = TRUE), replace = TRUE)
+bullying_join[bullying_join == "<10"] <- NA
 write.csv(bullying_join, file = "data/bullying/bullying_clean.csv", row.names = FALSE)
 
