@@ -35,7 +35,9 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
       sidebarPanel(
           a(href = "https://oaiti.org", target = "_blank", img(src = "images/oaiti_transparent.png", width = "135")),
           h4("About"),
-          HTML("This application uses data from the <a href='http://educateiowa.gov' target='_blank'>Iowa Department of Education</a> on bullying incidents in Iowa school districts. We use the district shapefiles to allow you to explore this data by clicking on the maps.<br><br>The Explore tab displays the number of incidents of a particular type in a particular year, with the option to scale by the enrollment of the district. The Model tab uses a simple linear regression to model the trend in the selected incident type over time for each district. Finally, the Data Sources tab gives information on the data collection process and displays a table of the raw results."),
+          HTML("This application uses data from the <a href='http://educateiowa.gov' target='_blank'>Iowa Department of Education</a> on bullying incidents in Iowa school districts. We use the district shapefiles to allow you to explore this data by clicking on the maps.<br><br>The Explore tab displays the number of incidents of a particular type in a particular year, with the option to scale by the enrollment of the district. The Model tab uses a simple linear regression to model the trend in the selected incident type over time for each district. Finally, the Data Sources tab gives information on the data collection process and displays a table of the raw results.<br><br>"),
+          actionButton("view_disclaimer", "View Disclaimer", icon = icon("info-circle")),
+          hr(),
           
           h4("Configuration"),
           selectInput("variable", "Incidents", choices = c("All" = "Founded Incidents", names(bullying)[4:21])),
@@ -85,6 +87,10 @@ server <- function(input, output, session) {
     
     toggleModal(session, "startupModal", toggle = "open")
     
+    observeEvent(input$view_disclaimer, {
+        toggleModal(session, "startupModal", toggle = "open")
+    })
+    
     output$modelmap <- renderLeaflet({
         withProgress(message = "Rendering model map", detail = "Please wait...", {
             bullying$MyVar <- bullying[[input$variable]]
@@ -106,7 +112,7 @@ server <- function(input, output, session) {
             popup_dat <- paste0("<strong>District: </strong>", 
                                 leafmap$Name, 
                                 "<br><strong>Incident Trend: </strong>", 
-                                round(leafmap$Trend, digits = 3))
+                                ifelse(is.na(leafmap$Trend), "Not Available", paste(round(leafmap$Trend, digits = 3), "per year")))
             
             absmax <- ceiling(max(abs(leafmap$Trend), na.rm = TRUE))
             pal <- colorNumeric("RdYlGn", -absmax:absmax, reverse = TRUE, na.color = "#FFFFFF")
