@@ -35,7 +35,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
       sidebarPanel(
           a(href = "https://oaiti.org", target = "_blank", img(src = "images/oaiti_transparent.png", width = "135")),
           h4("About"),
-          HTML("This application uses data from the <a href='http://educateiowa.gov' target='_blank'>Iowa Department of Education</a> on bullying incidents in Iowa school districts. We use the district shapefiles to allow you to explore this data by clicking on the maps.<br><br>The Explore tab displays the number of incidents of a particular type in a particular year, with the option to scale by the enrollment of the district. The Model tab uses a simple linear regression to model the trend in the selected incident type over time for each district. Finally, the Data Sources tab gives information on the data collection process and displays a table of the raw results.<br><br>"),
+          HTML("This application uses data from the <a href='https://www.educateiowa.gov/education-statistics' target='_blank'>Iowa Department of Education</a> on bullying incidents and enrollment in Iowa school districts. We use the district shapefiles to allow you to explore this data by clicking on the maps.<br><br>The Explore tab displays the number of incidents of a particular type in a particular year, with the option to scale by the enrollment of the district. The Model tab uses a simple linear regression to model the trend in the selected incident type over time for each district. Finally, the Data Sources tab gives information on the data collection process and displays a table of the raw results.<br><br>"),
           actionButton("view_disclaimer", "View Disclaimer", icon = icon("info-circle")),
           hr(),
           
@@ -50,7 +50,6 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
       
       mainPanel(
           bsModal(id = 'startupModal', title = 'Reported Bullying Incidents Disclaimer', trigger = '',
-                  size = 'medium', HTML("We have created this app to make the publicly available bullying data for Iowa easier to visualize and interpret. However, several important disclaimers should be noted:<br><br>1. This data consists of <b>reported</b> bullying incidents. Many bullying incidents are left unreported, and some districts may be better about logging these reports than others.<br><br>2. Districts in which between 1 and 9 bullying incidents were reported in a particular year had the <b>data redacted</b> to protect student privacy. These districts will display as white in both the Explore and the Model tabs.<br><br>3. The model is a prototype and <b>should not be used to make decisions</b> based on the bullying trend. It is a simple trend in the incidents over a four year period, and subject to misinterpretation. Please use the model only as an example of a possible analysis and not as a decision making tool.<br><br> By clicking \"Close\", you confirm that you have read these disclaimers.")),
           
           tabsetPanel(id = "tabs1",
               tabPanel("Explore",
