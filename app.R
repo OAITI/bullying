@@ -43,6 +43,8 @@ mycoef <- function(formula, data) {
 }
 
 ui <- fluidPage(theme = shinytheme("cerulean"),
+                
+   includeCSS("css/styles.css"),
    
    titlePanel("Reported Bullying Incidents in Iowa School Districts"),
    

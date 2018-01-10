@@ -1,0 +1,21 @@
+h4 {
+  font-family: 'Raleway', sans-serif;
+  font-weight: 500;
+  line-height: 1.1;
+  color: #FF8E30;
+}
+
+h2 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  line-height: 1.1;
+  color: #FF8E30;
+}
+
+a {
+  color: #FF8E30;
+}
+
+a:hover {
+    color: #FF8E30;
+}
