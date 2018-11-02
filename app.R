@@ -100,7 +100,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
 
 server <- function(input, output, session) {
     
-    values <- reactiveValues(firstrun = TRUE)
+    values <- reactiveValues(firstrun = FALSE)
     
     observeEvent(input$year, {
         values$firstrun <- FALSE
