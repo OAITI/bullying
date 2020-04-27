@@ -12,7 +12,7 @@ library(leaflet)
 library(scales)
 library(shinythemes)
 library(shinycssloaders)
-library(shinyBS)
+library(bsplus)
 library(DT)
 
 ## Set images resource path
@@ -54,7 +54,8 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
           a(href = "https://oaiti.org", target = "_blank", img(src = "images/oaiti_transparent.png", width = "135")),
           h4("About"),
           HTML("This application uses data from the <a href='https://www.educateiowa.gov/education-statistics' target='_blank'>Iowa Department of Education</a> on bullying incidents and enrollment in Iowa school districts. We use the district shapefiles to allow you to explore this data by clicking on the maps.<br><br>The Explore tab displays the number of incidents of a particular type in a particular year, with the option to scale by the enrollment of the district. The Model tab uses a simple linear regression to model the trend in the selected incident type over time for each district. Finally, the Data Sources tab gives information on the data collection process and displays a table of the raw results.<br><br>For more information, check out <a href='https://oaiti.org/2017/11/29/bullying-incidents-in-iowa-school-districts/' target='_blank'>our blog</a>.<br><br>"),
-          actionButton("view_disclaimer", "View Disclaimer", icon = icon("info-circle")),
+          actionButton("view_disclaimer", "View Disclaimer", icon = icon("info-circle")) %>%
+            bs_attach_modal(id_modal = "startupModal"),
           hr(),
           
           h4("Configuration"),
@@ -67,8 +68,8 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
       ),
       
       mainPanel(
-          bsModal(id = 'startupModal', title = 'Reported Bullying Incidents Disclaimer', trigger = '',
-                  size = 'medium', HTML("We have created this app to make the publicly available bullying data for Iowa easier to visualize and interpret. However, some important disclaimers should be noted:<br><br>1. This data consists of <b>reported</b> bullying incidents. Many bullying incidents are left unreported, and some districts may be better about logging these reports than others.<br><br>2. Districts in which between 1 and 9 bullying incidents were reported in a particular year had the <b>data redacted</b> to protect student privacy. These districts will display as white in both the Explore and the Model tabs. See the <a href='https://www.educateiowa.gov/data-reporting/data-reporting/data-access-sharing-and-privacy'>Iowa Department of Education Data Privacy</a> for more information.<br><br>3. The model is a simple trend in the incidents over a four year period. It is meant to be a prototype and <b>should not be used to make decisions</b> based on the bullying trend. Please use the model as an example of a possible analysis and not as a decision making tool.<br><br> By clicking \"Close\", you confirm that you have read these disclaimers.")),
+          bs_modal(id = 'startupModal', title = 'Reported Bullying Incidents Disclaimer',
+                   size = "medium", HTML("We have created this app to make the publicly available bullying data for Iowa easier to visualize and interpret. However, some important disclaimers should be noted:<br><br>1. This data consists of <b>reported</b> bullying incidents. Many bullying incidents are left unreported, and some districts may be better about logging these reports than others.<br><br>2. Districts in which between 1 and 9 bullying incidents were reported in a particular year had the <b>data redacted</b> to protect student privacy. These districts will display as white in both the Explore and the Model tabs. See the <a href='https://www.educateiowa.gov/data-reporting/data-reporting/data-access-sharing-and-privacy'>Iowa Department of Education Data Privacy</a> for more information.<br><br>3. The model is a simple trend in the incidents over a four year period. It is meant to be a prototype and <b>should not be used to make decisions</b> based on the bullying trend. Please use the model as an example of a possible analysis and not as a decision making tool.<br><br> By clicking \"Close\", you confirm that you have read these disclaimers.")),
           
           tabsetPanel(id = "tabs1",
               tabPanel("Explore",
@@ -92,6 +93,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        hr(),
                        
                        h4("Raw Data"),
+
                        withSpinner(DTOutput("data"))
               )
           )
@@ -114,12 +116,6 @@ server <- function(input, output, session) {
     observeEvent(input$variable, {
         values$firstrun <- FALSE
     }, ignoreInit = TRUE)
-    
-    toggleModal(session, "startupModal", toggle = "open")
-    
-    observeEvent(input$view_disclaimer, {
-        toggleModal(session, "startupModal", toggle = "open")
-    })
     
     output$modelmap <- renderLeaflet({
         if (values$firstrun) {
