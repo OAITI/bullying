@@ -13,6 +13,7 @@ library(scales)
 library(shinythemes)
 library(shinycssloaders)
 library(bsplus)
+library(DT)
 
 ## Set images resource path
 addResourcePath("images", "images")
@@ -92,7 +93,8 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        hr(),
                        
                        h4("Raw Data"),
-                       withSpinner(DT::dataTableOutput("data"))
+
+                       withSpinner(DTOutput("data"))
               )
           )
       )
@@ -199,7 +201,7 @@ server <- function(input, output, session) {
         }
     })
     
-    output$data <- DT::renderDataTable({
+    output$data <- renderDT({
         myyear <- input$year
         if (myyear == "All") myyear <- 2013:2016
         
