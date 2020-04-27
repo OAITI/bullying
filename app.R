@@ -92,7 +92,7 @@ ui <- fluidPage(theme = shinytheme("cerulean"),
                        hr(),
                        
                        h4("Raw Data"),
-                       withSpinner(dataTableOutput("data"))
+                       withSpinner(DT::dataTableOutput("data"))
               )
           )
       )
@@ -199,7 +199,7 @@ server <- function(input, output, session) {
         }
     })
     
-    output$data <- renderDataTable({
+    output$data <- DT::renderDataTable({
         myyear <- input$year
         if (myyear == "All") myyear <- 2013:2016
         
